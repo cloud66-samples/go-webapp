@@ -1,48 +1,96 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
 
-    <title>Hello!</title>
+<head>
+  <meta charset="utf-8">
+  <title>ACME App | Cloud 66</title>
 
-    <!-- Bootstrap core CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
-    <link rel="stylesheet" href="./style.css" >
-  </head>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
 
-  <body class="text-center bg">
-
-    <div class="cover-container d-flex h-100 p-3 mx-auto flex-column">
-      <header class="masthead mb-auto">
-        <div class="inner">
-          <h3 class="masthead-brand">Cloud 66</h3>
-        </div>
-      </header>
-
-      <main role="main" class="inner cover">
-        <h1 class="cover-heading">You are here!</h1>
-
-        <p class="lead">{{LEAD}}</p>
-        <p class="lead">
-          <a href="https://cloud66.com/" class="btn btn-lg btn-secondary">Learn more</a>
-        </p>
-      </main>
-
-      <footer class="mastfoot mt-auto">
-        <div class="inner">
-          <p>The code for this app lives on <a href="https://github.com/cloud66-samples/go-webapp">Github</a></p>
-        </div>
-      </footer>
+<body class="bg-gray-50 flex flex-col h-screen max-w-7xl mx-auto pt-10">
+  <header class="border-b-4 border-green-500">
+    <div>
+      <h1 class="text-4xl font-bold">ACME App</h1>
+      <h2 class="text-gray-600 pb-2">Sample Web Application used for deployment tutorials</h2>
     </div>
+  </header>
 
+  <main class="h-full">
+    <div class="mt-8">
+      <div class="font-semibold text-gray-500 text-xl mb-2 ml-2">Headers</div>
+      <div class="mb-auto border rounded border-gray-200 shadow-sm">
+        <div class="p-4 overflow-auto">
+          <table class="table-fixed w-full font-mono">
+            <thead>
+              <tr>
+                <th class="w-1/4 text-left pl-2">Name</th>
+                <th class="w-3/4 text-left">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $key, $value := .Headers }}
+              <tr class="hover:bg-gray-200">
+                <td class="pl-2">
+                  {{ $key }}</td>
+                <td class="pr-2 break-all">
+                  {{ $value }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="mt-8">
+      <div class="font-semibold text-gray-500 text-xl mb-2 ml-2">Info</div>
+      <div class="mb-auto border rounded border-gray-200 shadow-sm">
+        <div class="p-4 overflow-auto">
+          <table class="table-fixed w-full font-mono">
+            <thead>
+              <tr>
+                <th class="w-1/4 text-left pl-2">Name</th>
+                <th class="w-3/4 text-left">Value</th>
+              </tr>
+            </thead>
+            <tbody>              
+              <tr class="hover:bg-gray-200">
+                <td class="pl-2">
+                  Version</td>
+                <td class="pr-2 break-all">
+                  {{ .Version }}
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-200">
+                <td class="pl-2">
+                  Request ID</td>
+                <td class="pr-2 break-all">
+                  {{ .RequestID }}
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-200">
+                <td class="pl-2">
+                  Caller IP</td>
+                <td class="pr-2 break-all">
+                  {{ .CallerIP }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+  <footer class="h-10 mt-10">
+    <div>
+      <div>
+        <p class="text-center text-sm text-gray-400">Developed by <a class="text-blue-400"
+            href="https://www.cloud66.com">Cloud 66</a></p>
+      </div>
+    </div>
+  </footer>
+</body>
 
-    <script src="./scripts.js"></script>
-  </body>
 </html>

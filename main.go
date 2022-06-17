@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -24,7 +24,15 @@ const (
 var (
 	listenAddr string
 	healthy    int32
+	Version    string = "dev"
 )
+
+type renderContext struct {
+	Headers   map[string]string
+	Version   string
+	RequestID string
+	CallerIP  string
+}
 
 func main() {
 	flag.StringVar(&listenAddr, "binding", "0.0.0.0:3000", "Server listen address")
@@ -37,20 +45,12 @@ func main() {
 	logger.Printf("Server is starting on %s...\n", listenAddr)
 
 	router := http.NewServeMux()
-	router.Handle("/style.css", http.FileServer(http.Dir("./static")))
-	router.Handle("/background.png", http.FileServer(http.Dir("./static")))
 	router.Handle("/favicon.ico", http.FileServer(http.Dir("./static")))
-	router.Handle("/fetch.html", http.FileServer(http.Dir("./static")))
-	router.Handle("/test.js", http.FileServer(http.Dir("./static")))
 	router.HandleFunc("/", handler)
-
-	nextRequestID := func() string {
-		return fmt.Sprintf("%d", time.Now().UnixNano())
-	}
 
 	server := &http.Server{
 		Addr:         listenAddr,
-		Handler:      tracing(nextRequestID)(logging(logger)(router)),
+		Handler:      logging(logger)(router),
 		ErrorLog:     logger,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -87,27 +87,38 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	requestID := fmt.Sprintf("%d", time.Now().UnixNano())
+	w.Header().Set("X-Request-Id", requestID)
+
+	var err error
+	templ, err := template.New("index.html").ParseFiles("./static/index.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	for name, values := range r.Header {
 		for _, value := range values {
 			fmt.Println(name, value)
 		}
 	}
 
-	var contentBytes, _ = ioutil.ReadFile("./static/index.html")
-	var content = string(contentBytes)
-	var leadContent = "This is a simple single service application. Deployed by Cloud 66"
-	content = strings.Replace(content, "{{LEAD}}", leadContent, -1)
-	w.Write([]byte(content))
-}
+	headers := make(map[string]string)
 
-func healthz() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if atomic.LoadInt32(&healthy) == 1 {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		w.WriteHeader(http.StatusServiceUnavailable)
+	for name, values := range r.Header {
+		headers[name] = strings.Join(values, ",")
+	}
+
+	err = templ.Execute(w, renderContext{
+		Headers:   headers,
+		Version:   Version,
+		RequestID: requestID,
+		CallerIP:  r.RemoteAddr,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func logging(logger *log.Logger) func(http.Handler) http.Handler {
@@ -121,20 +132,6 @@ func logging(logger *log.Logger) func(http.Handler) http.Handler {
 				logger.Println(requestID, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
 			}()
 			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestID := r.Header.Get("X-Request-Id")
-			if requestID == "" {
-				requestID = nextRequestID()
-			}
-			ctx := context.WithValue(r.Context(), requestIDKey, requestID)
-			w.Header().Set("X-Request-Id", requestID)
-			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

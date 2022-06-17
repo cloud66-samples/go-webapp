@@ -1,0 +1,91 @@
+#!/usr/bin/ruby
+
+BACKENDS = %w[web1 web2]
+
+# get the backend status. returns true if the backend has an IP (indicating it's running)
+def get_backend_status(backend)
+  puts "Getting status for #{backend}"
+
+  status = `echo "show servers conn web" | socat stdio tcp4-connect:127.0.0.1:9999 | awk '{split($0,a," "); print a[1],a[3]}' | grep "web/#{backend}" | awk '{split($0,a," "); print a[2]}'`
+  running = status.chomp != '-'
+
+  puts "Status for #{backend} is #{running ? 'running' : 'stopped'}"
+  running
+end
+
+# starts a backend service with a tag (app version)
+def start_backend(backend, tag)
+  puts "Starting #{backend}"
+
+  `docker rm #{backend}`
+  `docker run -d --name #{backend} --net sample cloud66/go-webapp:#{tag} /app/go-webapp`
+end
+
+# stops a backend service
+def stop_backend(backend)
+  puts "Stopping #{backend}"
+
+  `docker stop #{backend}`
+end
+
+# finds the running backend service, starts the alternative to that and stops the original
+def swap_backends(tag)
+  # get the backend that's not running
+  backend = BACKENDS.find { |b| !get_backend_status(b) }
+  backend = BACKENDS.first if backend.nil?
+  # start it
+  start_backend(backend, tag)
+  # stop the other backend
+  stop_backend(BACKENDS.find { |b| b != backend })
+end
+
+# setsup the network and starts haproxy. the given tag is the haproxy images tag
+# and is used in case we change the haproxy image (ie its config)
+def up(tag)
+  # create a sample bridge network if not present
+  network = `docker network ls | grep sample | wc -l`.chomp.to_i > 0
+  unless network
+    puts 'Creating sample network'
+    `docker network create --driver=bridge sample`
+  end
+
+  # check if haproxy container is running
+  running = `docker ps | grep haproxy | wc -l`.chomp.to_i > 0
+  puts "Haproxy is #{running ? 'running' : 'stopped'}"
+
+  unless running
+    puts 'Starting haproxy'
+
+    `docker rm haproxy`
+    `docker run -d --name haproxy --net sample -p 80:80 -p 9999:9999 cloud66/haproxy:#{tag}`
+  end
+end
+
+# stops the backend services and haproxy
+def stop_all
+  puts 'Stopping haproxy and backends'
+
+  `docker stop haproxy`
+  BACKENDS.each { |b| stop_backend(b) }
+end
+
+def down
+  stop_all
+  `docker network rm sample`
+end
+
+# this tool takes in 1 or 2 args as the command: up, down or deploy
+# deploy takes in a tag as the second arg. if not provided it uses latest
+# up takes in a tag as the second arg. if not provided it uses latest (the tag is for haproxy image)
+# up: init the setup (network and haproxy)
+# down: stops the haproxy and removes network, etc
+# deploy: swaps the current backend with a new one or starts a new one if none exists
+if ARGV[0] == 'up'
+  up(ARGV[1] || 'latest')
+elsif ARGV[0] == 'deploy'
+  swap_backends(ARGV[1] || 'latest')
+elsif ARGV[0] == 'down'
+  down
+else
+  puts 'Usage: deploy up|down|deploy'
+end

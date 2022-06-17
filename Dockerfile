@@ -1,8 +1,17 @@
-FROM golang:1.17
+FROM golang:1.17 AS build
 
+ARG VERSION=dev
 WORKDIR /go/src/go-webapp
 COPY . .
-RUN go get -d -v ./...
-RUN go build
+RUN CGO_ENABLED=0 go build -o /go/src/go-webapp/go-webapp -ldflags="-X 'main.Version=$VERSION'"
 
-CMD ["/go/src/go-webapp/go-webapp"]
+FROM alpine
+
+LABEL maintainer="ACME Engineering <acme@example.com>"
+
+RUN mkdir /app
+COPY --from=build /go/src/go-webapp/go-webapp /app/go-webapp
+COPY --from=build /go/src/go-webapp/static/ /app/static/
+WORKDIR /app
+CMD ["/app/go-webapp"]
+

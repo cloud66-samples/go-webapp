@@ -1,0 +1,38 @@
+#!/usr/bin/ruby
+
+COMPONENTS = {
+  web: { image: 'cloud66/go-webapp', dockerfile: 'Dockerfile' },
+  haproxy: { image: 'cloud66/haproxy', dockerfile: 'Dockerfile.haproxy' },
+}
+
+def build(image, file, tag)
+  `docker build --build-arg VERSION=#{tag} -t #{image}:#{tag} -f #{file} .`
+end
+
+def push(image, tag)
+  `docker push #{image}:#{tag}`
+end
+
+def build_all(tag)
+  COMPONENTS.keys.each { |component| build(COMPONENTS[component][:image], COMPONENTS[component][:dockerfile], tag) }
+end
+
+def push_all(tag)
+  COMPONENTS.keys.each { |component| push(COMPONENTS[component][:image], tag) }
+end
+
+# generate a tag based on YYYYMMDDHHMM 
+tag = Time.now.strftime('%Y%m%d%H%M')
+
+# build and pushes the images
+# it takes 0 or 1 params: the image to build, if missing it will build all 
+if ARGV.length > 0
+  build(ARGV[0], tag)
+  push(ARGV[0], tag)
+else
+  build_all(tag)
+  push_all(tag)
+end
+
+puts "Built and pushed #{tag}"
+
