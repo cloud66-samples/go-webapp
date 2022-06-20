@@ -1,8 +1,7 @@
 #!/usr/bin/ruby
 
 COMPONENTS = {
-  web: { image: 'cloud66/go-webapp', dockerfile: 'Dockerfile' },
-  haproxy: { image: 'cloud66/haproxy', dockerfile: 'Dockerfile.haproxy' },
+  web: { image: 'cloud66/go-webapp', dockerfile: 'Dockerfile' }  
 }
 
 def build(image, file, tag)

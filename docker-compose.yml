@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  web: 
+    image: cloud66/go-webapp:${TAG}
+    ports:
+      - "80:3000"
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 5s

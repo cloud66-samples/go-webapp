@@ -23,6 +23,7 @@ const (
 
 var (
 	listenAddr string
+	trustedIP  string
 	healthy    int32
 	Version    string = "dev"
 )
@@ -36,6 +37,7 @@ type renderContext struct {
 
 func main() {
 	flag.StringVar(&listenAddr, "binding", "0.0.0.0:3000", "Server listen address")
+	flag.StringVar(&trustedIP, "trusted-ip", "", "Load balancer IP to trust")
 	flag.Parse()
 
 	cancel := make(chan os.Signal)
@@ -108,6 +110,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	for name, values := range r.Header {
 		headers[name] = strings.Join(values, ",")
 	}
+
+	// get the real IP from the header if present and only trust the given IPs
 
 	err = templ.Execute(w, renderContext{
 		Headers:   headers,
